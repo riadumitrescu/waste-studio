@@ -104,6 +104,10 @@ let apiAvailable = true;
 checkApiAvailability().then(available => {
   apiAvailable = available;
   console.log('API available:', apiAvailable);
+  
+  if (!apiAvailable) {
+    showToast('API key not configured or unavailable. Some features may be limited.');
+  }
 });
 
 // Event Listeners
@@ -238,46 +242,46 @@ async function handleSubmit() {
     }
 
     try {
-        // Check if API is available before making request
-        if (!apiAvailable) {
-            console.log('Using offline mode due to API unavailability');
-            await simulateLoading(); // Add slight delay for better UX
-            const offlineResponse = getOfflineResponse(
-                activeTab === 'image' ? 
-                    (imageDescription.value || 'default') : 
-                    materialDescription.value
-            );
-            displayResults(offlineResponse);
-            return;
-        }
-        
+        // Always attempt to use the API first
         let response;
-        console.log(`Processing ${activeTab} input`);
         
         if (activeTab === 'image') {
             if (imageInput.files[0]) {
-                // Process with uploaded image
+                // Process image
                 const base64Image = await getBase64(imageInput.files[0]);
                 response = await analyzeImage(base64Image);
-            } else if (imageDescription.value.trim()) {
-                // Process with image description as text
-                response = await analyzeText(imageDescription.value.trim());
+                console.log("RECEIVED IMAGE RESPONSE:", response);
+            } else {
+                // Process image description
+                response = await analyzeText(imageDescription.value);
+                console.log("RECEIVED TEXT DESCRIPTION RESPONSE:", response);
             }
         } else {
-            response = await analyzeText(materialDescription.value.trim());
+            // Process material description text
+            response = await analyzeText(materialDescription.value);
+            console.log("RECEIVED MATERIAL DESCRIPTION RESPONSE:", response);
         }
         
         if (response.error) {
             throw new Error(response.error);
         }
         
+        // Check if we're getting a default offline response
+        const isDefaultResponse = 
+            response.ideas && 
+            response.ideas.length === 3 && 
+            response.ideas[0] === "Create mixed-media artwork incorporating the materials" &&
+            response.ideas[1] === "Design functional home decor items showcasing the material's unique properties" &&
+            response.ideas[2] === "Make wearable art or accessories featuring the material as focal points";
+        
+        if (isDefaultResponse) {
+            console.warn("Default/offline response detected. API might not be working correctly.");
+            showToast("API may not be working correctly. Results may be generic.");
+        }
+        
         if (response.fallback_ideas && response.fallback_message) {
-            // This is a fallback response from the server
-            displayResults({
-                ideas: response.fallback_ideas,
-                message: response.fallback_message
-            });
-            return;
+            console.warn('Server returned fallback response. API might be having issues.');
+            showToast('Using server fallback response. Results may be generic.');
         }
         
         displayResults(response);
@@ -300,7 +304,7 @@ async function handleSubmit() {
         
         console.log(errorMessage);
         
-        // Show a brief toast notification instead of an alert
+        // Show a more visible error to the user
         showToast(errorMessage);
         
         // Use offline response
@@ -390,7 +394,7 @@ async function analyzeImage(base64Image) {
         // Check base64Image
         if (!base64Image || base64Image.length < 100) {
             console.error('Invalid base64 image data');
-            return getOfflineResponse('default');
+            throw new Error('Invalid image data');
         }
         
         console.log('Sending image to backend API');
@@ -402,17 +406,32 @@ async function analyzeImage(base64Image) {
             body: JSON.stringify({ base64Image })
         });
 
+        // Check for non-200 responses
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server responded with status ${response.status}`);
+        }
+
         console.log('Received response from backend API with status:', response.status);
-        return await response.json();
+        const responseData = await response.json();
+        
+        // Debug response
+        console.log('Response data (ideas):', responseData.ideas);
+        console.log('Response data (message):', responseData.message ? responseData.message.substring(0, 50) + '...' : 'No message');
+        
+        return responseData;
     } catch (error) {
         console.error('Error analyzing image:', error);
-        // Return the fallback response directly
-        return getOfflineResponse('default');
+        throw error; // Re-throw to handle in the main handler
     }
 }
 
 async function analyzeText(text) {
     try {
+        if (!text || text.trim().length < 3) {
+            throw new Error('Text description too short');
+        }
+        
         console.log('Sending text to backend API');
         const response = await fetch(API_ENDPOINTS.text, {
             method: 'POST',
@@ -422,12 +441,23 @@ async function analyzeText(text) {
             body: JSON.stringify({ text })
         });
 
+        // Check for non-200 responses
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server responded with status ${response.status}`);
+        }
+
         console.log('Received response from backend API with status:', response.status);
-        return await response.json();
+        const responseData = await response.json();
+        
+        // Debug response
+        console.log('Response data (ideas):', responseData.ideas);
+        console.log('Response data (message):', responseData.message ? responseData.message.substring(0, 50) + '...' : 'No message');
+        
+        return responseData;
     } catch (error) {
         console.error('Error analyzing text:', error);
-        // Return the fallback response directly
-        return getOfflineResponse(text);
+        throw error; // Re-throw to handle in the main handler
     }
 }
 

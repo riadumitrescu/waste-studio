@@ -1,0 +1,34 @@
+# Waste-Match Studio - Project Mandates
+
+This file tracks the project mandates and design decisions that have been deemed good or mandatory for the Waste-Match Studio application.
+
+## UI/UX Mandates
+- Modern dark UI with violet-blue accent color
+- Tab interface for different input methods (image upload and text description)
+- Drag-and-drop image upload with preview
+- "And" separator between image upload and description to encourage providing both
+- Enhancement tips shown below input areas to guide users
+- Loading animation during API calls
+- Copy-to-clipboard functionality for artist messages
+- Transparent error reporting with toast notifications
+
+## Technical Mandates
+- Secure handling of API calls through backend server
+- Fallback mechanism for API failures
+- Offline mode with material-specific responses
+- Environment variable handling for API keys
+- Static file serving for production deployment
+- Detailed error handling for all API calls
+- Proper validation of responses
+- Comprehensive error logging for troubleshooting
+- Always prioritize API calls over offline mode
+
+## Content Mandates
+- Detailed prompts for personalized AI responses
+- Creative reuse suggestions should be specific to the material
+- Messages for artists should be warm and conversational
+- Focus on the unique properties of each material
+- Material analysis must include physical properties and visual attributes
+- Reuse ideas must be immediately implementable with minimal processing
+- Each idea must include specific end product, implementation approach, and target market
+- Artist messages must reference specific material properties and end with clear invitation 

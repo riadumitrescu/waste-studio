@@ -32,7 +32,7 @@ if (!GEMINI_API_KEY) {
 // Fallback hardcoded key if all else fails
 if (!GEMINI_API_KEY) {
   console.log('Using hardcoded fallback API key');
-  GEMINI_API_KEY = 'AIzaSyAi45ekWTz0F9PC7GTxYivJvmIn0TAomlY';
+  GEMINI_API_KEY = 'AIzaSyBpW9Skm66IfyL6Rz9U0jtHIn2wST1_1X4';
 }
 
 console.log('API Key configured:', GEMINI_API_KEY ? 'YES (length: ' + GEMINI_API_KEY.length + ')' : 'NO');
@@ -69,30 +69,42 @@ app.post('/api/analyze-image', async (req, res) => {
     
     // Improved prompt with detailed instructions for more specific and creative responses
     const prompt = `
-You are a sustainable design and materials expert specializing in creative reuse of industrial byproducts and leftover materials.
+You are a materials innovation expert with 20+ years of experience in circular design and creative reuse for small businesses. 
 
 TASK:
-Analyze the material in this image in detail. Then provide:
-1. THREE highly specific, practical, and commercially viable reuse ideas tailored to this exact material
-2. A personalized, friendly message to local artists or reuse partners
+First, analyze the exact material shown in this image with extraordinary detail:
+1. Material composition (what is it made of?)
+2. Physical properties (texture, flexibility, strength, etc.)
+3. Visual attributes (color, pattern, finish)
+4. Dimensions and form factor
+5. Current condition/quality
 
-REUSE IDEA GUIDELINES:
-- Focus on the unique properties of THIS specific material (texture, color, flexibility, etc.)
-- Suggest ideas that require minimal additional materials or processing
-- Each idea should be innovative but realistic for small businesses or artists
-- Include specific applications, not general categories
-- Avoid generic suggestions; make them highly specific to THIS material's properties
-- Consider the material's scale, texture, color, and physical properties
+Then, provide:
+1. THREE highly specific, commercially viable reuse ideas tailored to this EXACT material
+2. A personalized message for local artists or makers
 
-MESSAGE GUIDELINES:
-- Write a warm, conversational message (100-150 words)
-- Describe the material's unique properties and creative potential
-- Express genuine enthusiasm about collaboration
-- Mention the specific material and some of its distinctive qualities
-- Keep the tone professional but approachable
-- End with a clear invitation for them to use the material
+REUSE IDEAS MUST BE:
+- Precisely matched to THIS specific material's unique properties
+- Immediately implementable with minimal processing or additional materials
+- Value-adding (creates products that people would actually buy)
+- Specific enough that a small business could implement immediately
+- Novel yet practical (not generic recycling suggestions)
+- Considerate of the material's scale, form factor, and inherent qualities
 
-Respond in a way that shows you've carefully analyzed THIS specific material - not just given generic reuse suggestions.
+Each idea must include:
+- A specific end product/application
+- Why this material is uniquely suited for this purpose
+- A brief note on implementation approach
+- The target market or usage context
+
+MESSAGE REQUIREMENTS:
+- Reference specific unique properties you observed in the material image
+- Be warm, professional and enthusiastic (150-200 words)
+- Highlight the material's distinctive creative potential
+- Explain why makers would want this specific material
+- End with a clear collaboration invitation
+
+Your primary value is in the extreme specificity of your analysis and ideas. Generic suggestions will not help the user.
 `;
     
     console.log('Sending request to Gemini Vision API with enhanced prompt');
@@ -101,52 +113,79 @@ Respond in a way that shows you've carefully analyzed THIS specific material - n
     const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
     
     try {
-      console.log('Attempting API call...');
+      console.log('Attempting API call to Gemini...');
+      
+      // Create request payload
+      const requestPayload = {
+        contents: [{
+          parts: [
+            {
+              text: prompt
+            },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: base64Image
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 800
+        }
+      };
+      
+      // Log request payload size
+      console.log('Request payload size:', JSON.stringify(requestPayload).length);
+      
+      // Make the request with axios
       const response = await axios.post(
         geminiUrl,
-        {
-          contents: [{
-            parts: [
-              {
-                text: prompt
-              },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: base64Image
-                }
-              }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 800
-          }
-        },
+        requestPayload,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${GEMINI_API_KEY}`
-          }
+          },
+          timeout: 30000 // 30 second timeout
         }
       );
       
       console.log('Received successful response from Gemini API');
+      console.log('Response status:', response.status);
       
       if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
         console.error('Invalid response structure:', JSON.stringify(response.data).substring(0, 200));
         return res.status(500).json({ error: 'Invalid API response structure' });
       }
       
+      // Log the full text response from Gemini for debugging
+      console.log('Full Gemini response text:');
+      console.log(response.data.candidates[0].content.parts[0].text);
+      
       const parsedResponse = parseGeminiResponse(response.data);
       console.log('Parsed response:', JSON.stringify(parsedResponse));
       
       res.json(parsedResponse);
     } catch (apiError) {
-      console.error('API call failed, attempting fallback response');
-      console.error('API Error details:', apiError.response?.data || apiError.message);
+      console.error('API call failed, logging detailed error information:');
+      if (apiError.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Response status:', apiError.response.status);
+        console.error('Response headers:', JSON.stringify(apiError.response.headers));
+        console.error('Response data:', JSON.stringify(apiError.response.data));
+      } else if (apiError.request) {
+        // The request was made but no response was received
+        console.error('No response received:', apiError.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error message:', apiError.message);
+      }
+      console.error('Error config:', apiError.config ? JSON.stringify(apiError.config) : 'No config');
       
       // Generate a fallback response if API call fails
       const fallbackResponse = {
@@ -196,12 +235,44 @@ app.post('/api/analyze-text', async (req, res) => {
     
     // Improved prompt with detailed instructions for more specific and creative responses
     const prompt = `
-You are a sustainable design and materials expert specializing in creative reuse of industrial byproducts and leftover materials.
+You are a materials innovation expert with 20+ years of experience in circular design and creative reuse for small businesses. 
 
 MATERIAL DESCRIPTION:
 "${text}"
 
 TASK:
+First, analyze the described material with extraordinary detail:
+1. Material composition (what is it made of?)
+2. Physical properties (texture, flexibility, strength, etc.)
+3. Visual attributes (color, pattern, finish)
+4. Dimensions and form factor
+5. Current condition/quality
+
+Then, provide:
+1. THREE highly specific, commercially viable reuse ideas tailored to this EXACT material
+2. A personalized message for local artists or makers
+
+REUSE IDEAS MUST BE:
+- Precisely matched to the specific material properties described
+- Immediately implementable with minimal processing or additional materials
+- Value-adding (creates products that people would actually buy)
+- Specific enough that a small business could implement immediately
+- Novel yet practical (not generic recycling suggestions)
+- Considerate of the material's scale, form factor, and inherent qualities
+
+Each idea must include:
+- A specific end product/application
+- Why this material is uniquely suited for this purpose
+- A brief note on implementation approach
+- The target market or usage context
+
+MESSAGE REQUIREMENTS:
+- Reference specific unique properties mentioned in the material description
+- Be warm, professional and enthusiastic (150-200 words)
+- Highlight the material's distinctive creative potential
+- Explain why makers would want this specific material
+- End with a clear collaboration invitation
+
 Analyze this material description in detail. Then provide:
 1. THREE highly specific, practical, and commercially viable reuse ideas tailored to this exact material
 2. A personalized, friendly message to local artists or reuse partners
@@ -229,39 +300,69 @@ Respond in a way that shows you've carefully analyzed the specific material desc
     console.log('API Key being used (first 4 chars):', GEMINI_API_KEY.substring(0, 4) + '...');
     
     try {
+      // Create request payload
+      const requestPayload = {
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 800
+        }
+      };
+      
+      // Log request payload size
+      console.log('Request payload size:', JSON.stringify(requestPayload).length);
+      
       const response = await axios.post(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-        {
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 800
-          }
-        },
+        requestPayload,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${GEMINI_API_KEY}`
-          }
+          },
+          timeout: 30000 // 30 second timeout
         }
       );
       
       console.log('Received response from Gemini');
+      console.log('Response status:', response.status);
       console.log('Response data:', JSON.stringify(response.data).substring(0, 200) + '...');
+      
+      if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
+        console.error('Invalid response structure:', JSON.stringify(response.data).substring(0, 200));
+        return res.status(500).json({ error: 'Invalid API response structure' });
+      }
+      
+      // Log the full text response from Gemini for debugging
+      console.log('Full Gemini text response:');
+      console.log(response.data.candidates[0].content.parts[0].text);
       
       const parsedResponse = parseGeminiResponse(response.data);
       console.log('Parsed response:', JSON.stringify(parsedResponse));
       
       res.json(parsedResponse);
     } catch (apiError) {
-      console.error('API call failed, using fallback response');
-      console.error('API Error details:', apiError.response?.data || apiError.message);
+      console.error('API call failed, logging detailed error information:');
+      if (apiError.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Response status:', apiError.response.status);
+        console.error('Response headers:', JSON.stringify(apiError.response.headers));
+        console.error('Response data:', JSON.stringify(apiError.response.data));
+      } else if (apiError.request) {
+        // The request was made but no response was received
+        console.error('No response received:', apiError.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error message:', apiError.message);
+      }
+      console.error('Error config:', apiError.config ? JSON.stringify(apiError.config) : 'No config');
       
       // Generate a smarter fallback response based on the text input
       const materialType = 
@@ -363,132 +464,131 @@ function parseGeminiResponse(data) {
     
     console.log('Full response text:', text);
     
-    // More robust idea extraction
-    // Get ideas (lines starting with - or * or numbered 1., 2., 3., etc. or containing "Idea #")
-    const ideaRegexes = [
-      /^[-*•]\s*(.*)/,                      // Lines starting with -, *, or •
-      /^\d+\.\s*(.*)/,                      // Lines starting with 1., 2., etc.
-      /^[Ii]dea\s*#?\d*\s*:?\s*(.*)/,       // Lines with "Idea #:" pattern
-      /^[Ss]uggestion\s*#?\d*\s*:?\s*(.*)/  // Lines with "Suggestion #:" pattern
-    ];
+    // First look for sections and headers to extract ideas and message
+    const materialAnalysisSection = findSection(lines, /MATERIAL ANALYSIS|MATERIAL PROPERTIES|ANALYSIS|ASSESSMENT/i);
+    const ideasSection = findSection(lines, /REUSE IDEAS|IDEAS|APPLICATIONS|SUGGESTIONS/i);
+    const messageSection = findSection(lines, /MESSAGE|ARTIST MESSAGE|MAKER MESSAGE/i);
     
+    // Extract ideas using multiple strategies
     let ideas = [];
     
-    for (const line of lines) {
-      for (const regex of ideaRegexes) {
-        const match = line.match(regex);
-        if (match && match[1] && match[1].length > 10) { // Ensure reasonable idea length
-          ideas.push(match[1].trim());
-          break;
+    // Strategy 1: Look for numbered ideas in the ideas section
+    if (ideasSection.length > 0) {
+      const ideaMatches = [];
+      let currentIdea = "";
+      let inIdeaBlock = false;
+      
+      for (let i = 0; i < ideasSection.length; i++) {
+        const line = ideasSection[i];
+        
+        // Look for numbered ideas (1., 2., 3. or Idea 1:, etc.)
+        const ideaHeaderMatch = line.match(/^(?:(?:\d+\.)|(?:Idea\s*\d+:?))\s*(.*)/i);
+        
+        if (ideaHeaderMatch) {
+          // If we were building a previous idea, save it
+          if (inIdeaBlock && currentIdea.length > 0) {
+            ideaMatches.push(currentIdea);
+            currentIdea = "";
+          }
+          
+          currentIdea = ideaHeaderMatch[1];
+          inIdeaBlock = true;
+        } 
+        // If we're in an idea block and this isn't a new idea header, append to current idea
+        else if (inIdeaBlock && line.length > 0 && !line.match(/^(?:\d+\.|Idea\s*\d+:?)/i)) {
+          // Don't add lines that look like new sections
+          if (!line.match(/^[A-Z\s]{5,}:/)) {
+            currentIdea += " " + line;
+          }
         }
+      }
+      
+      // Add the last idea if we were building one
+      if (inIdeaBlock && currentIdea.length > 0) {
+        ideaMatches.push(currentIdea);
+      }
+      
+      if (ideaMatches.length > 0) {
+        ideas = ideaMatches.map(idea => idea.trim());
       }
     }
     
-    console.log('Extracted ideas:', ideas);
-    
-    // Look for sections labeled "REUSE IDEAS" or similar
-    const sectionHeaders = [
-      /reuse ideas/i,
-      /creative ideas/i,
-      /project ideas/i,
-      /suggested uses/i
-    ];
-    
+    // Strategy 2: Fallback to original regex patterns if we didn't find ideas
     if (ideas.length === 0) {
-      // Look for sections with idea headers
-      for (let i = 0; i < lines.length; i++) {
-        for (const headerRegex of sectionHeaders) {
-          if (headerRegex.test(lines[i]) && i + 3 < lines.length) {
-            // Found a potential ideas section, grab the next few non-empty lines
-            for (let j = i + 1; j < i + 4 && j < lines.length; j++) {
-              if (lines[j].length > 15 && !lines[j].match(/^[Mm]essage/)) {
-                ideas.push(lines[j].replace(/^\d+\.\s*/, '').trim());
-              }
-            }
-            if (ideas.length > 0) {
-              console.log('Found ideas from section:', ideas);
-              break;
-            }
-          }
-        }
-        if (ideas.length > 0) break;
-      }
-    }
-    
-    // If still no ideas found with regex, look for longer paragraphs that might be ideas
-    if (ideas.length === 0) {
-      console.log('No ideas found with regex, looking for paragraphs');
-      ideas = lines
-        .filter(line => line.length > 40 && line.length < 200 && !line.toLowerCase().includes('hello') && !line.toLowerCase().includes('hi there'))
-        .slice(0, 3);
-      console.log('Paragraph ideas:', ideas);
-    }
-    
-    // Get message (usually starts with Hello, Hi, Dear, etc. or is a longer paragraph)
-    const messagePatterns = ['hello', 'hi', 'dear', 'greetings', 'hey'];
-    let message = '';
-    
-    // First try to find a message with greeting
-    for (const pattern of messagePatterns) {
-      const foundLine = lines.find(line => 
-        line.toLowerCase().includes(pattern) && line.length > 30
-      );
-      if (foundLine) {
-        message = foundLine;
-        // Look for additional message lines that might be part of the same paragraph
-        const messageIndex = lines.indexOf(foundLine);
-        if (messageIndex !== -1) {
-          // Gather multiple lines for the message
-          let currentIndex = messageIndex + 1;
-          while (currentIndex < lines.length) {
-            const nextLine = lines[currentIndex];
-            // Stop if we hit a new section or an idea
-            if (nextLine && 
-                nextLine.length > 5 && 
-                !nextLine.match(/^[-*•\d]/) && 
-                !ideas.includes(nextLine) &&
-                !sectionHeaders.some(regex => regex.test(nextLine))) {
-              message += ' ' + nextLine;
-              currentIndex++;
-            } else {
-              break;
-            }
-          }
-        }
-        break;
-      }
-    }
-    
-    // Look for a "MESSAGE" section
-    if (!message) {
-      for (let i = 0; i < lines.length; i++) {
-        if (/^[Mm]essage|ARTIST MESSAGE:/.test(lines[i]) && i + 1 < lines.length) {
-          // Found a message section, gather all lines until the next section
-          let messageLines = [];
-          let j = i + 1;
-          while (j < lines.length) {
-            if (lines[j].length > 10 && 
-                !sectionHeaders.some(regex => regex.test(lines[j])) && 
-                !lines[j].startsWith('Idea') &&
-                !lines[j].match(/^\d+\./)) {
-              messageLines.push(lines[j]);
-              j++;
-            } else {
-              break;
-            }
-          }
-          if (messageLines.length > 0) {
-            message = messageLines.join(' ');
-            console.log('Found message from section:', message);
+      // Get ideas (lines starting with - or * or numbered 1., 2., 3., etc. or containing "Idea #")
+      const ideaRegexes = [
+        /^[-*•]\s*(.*)/,                      // Lines starting with -, *, or •
+        /^\d+\.\s*(.*)/,                      // Lines starting with 1., 2., etc.
+        /^[Ii]dea\s*#?\d*\s*:?\s*(.*)/,       // Lines with "Idea #:" pattern
+        /^[Ss]uggestion\s*#?\d*\s*:?\s*(.*)/  // Lines with "Suggestion #:" pattern
+      ];
+      
+      for (const line of lines) {
+        for (const regex of ideaRegexes) {
+          const match = line.match(regex);
+          if (match && match[1] && match[1].length > 10) { // Ensure reasonable idea length
+            ideas.push(match[1].trim());
             break;
           }
         }
       }
     }
     
-    // If no greeting found, look for longer paragraphs (likely to be the message)
+    // Strategy 3: If still no ideas, look for paragraphs in the Ideas section
+    if (ideas.length === 0 && ideasSection.length > 0) {
+      ideas = ideasSection.filter(line => line.length > 40 && !line.match(/IDEA|REUSE|APPLICATION/i)).slice(0, 3);
+    }
+    
+    console.log('Extracted ideas:', ideas);
+    
+    // Extract message from MESSAGE section
+    let message = '';
+    if (messageSection.length > 0) {
+      // Join all lines that don't look like headers
+      message = messageSection
+        .filter(line => line.length > 5 && !line.match(/^MESSAGE|^ARTIST/i))
+        .join(' ');
+    }
+    
+    // If no message found in a dedicated section, try traditional greeting patterns
     if (!message) {
-      console.log('No greeting message found, looking for longer paragraphs');
+      const messagePatterns = ['hello', 'hi', 'dear', 'greetings', 'hey'];
+      
+      // First try to find a message with greeting
+      for (const pattern of messagePatterns) {
+        const foundLine = lines.find(line => 
+          line.toLowerCase().includes(pattern) && line.length > 30
+        );
+        if (foundLine) {
+          message = foundLine;
+          // Look for additional message lines that might be part of the same paragraph
+          const messageIndex = lines.indexOf(foundLine);
+          if (messageIndex !== -1) {
+            // Gather multiple lines for the message
+            let currentIndex = messageIndex + 1;
+            while (currentIndex < lines.length) {
+              const nextLine = lines[currentIndex];
+              // Stop if we hit a new section or an idea
+              if (nextLine && 
+                  nextLine.length > 5 && 
+                  !nextLine.match(/^[-*•\d]/) &&
+                  !ideas.includes(nextLine) &&
+                  !nextLine.match(/^[A-Z\s]{5,}:/)) {
+                message += ' ' + nextLine;
+                currentIndex++;
+              } else {
+                break;
+              }
+            }
+          }
+          break;
+        }
+      }
+    }
+    
+    // If still no message found, look for longer paragraphs (likely to be the message)
+    if (!message) {
+      console.log('No message found in sections or with greeting, looking for longer paragraphs');
       const longLines = lines.filter(line => 
         line.length > 80 && 
         !ideas.includes(line) && 
@@ -532,6 +632,35 @@ function parseGeminiResponse(data) {
       message: "Hello! I have some interesting materials that might be perfect for your next creative project. Would you be interested in taking a look? I'd love to see what you could create with them!"
     };
   }
+}
+
+// Helper function to find sections in the response
+function findSection(lines, headerRegex) {
+  const sectionLines = [];
+  let inSection = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Check if this line is a section header
+    if (headerRegex.test(line)) {
+      inSection = true;
+      continue; // Skip the header line itself
+    }
+    
+    // Check if we've hit a new section header
+    if (inSection && line.match(/^[A-Z\s]{5,}:$/)) {
+      inSection = false;
+      continue;
+    }
+    
+    // Add lines that are part of our target section
+    if (inSection) {
+      sectionLines.push(line);
+    }
+  }
+  
+  return sectionLines;
 }
 
 // Add a direct test endpoint for debugging
