@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste-Match Studio</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Waste-Match Studio</h1>
+            <p class="subtitle">Transform your leftover materials into creative opportunities</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="input-tabs">
+                    <button class="tab-btn active" data-tab="image">Upload/Describe Image</button>
+                    <button class="tab-btn" data-tab="text">Describe Material</button>
+                </div>
+
+                <div class="tab-content active" id="imageTab">
+                    <div class="upload-box" id="uploadBox">
+                        <input type="file" id="imageInput" accept="image/*" hidden>
+                        <div class="upload-content">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p>Click to upload an image</p>
+                            <p class="upload-hint">or drag and drop</p>
+                        </div>
+                    </div>
+                    
+                    <div class="image-alternative">
+                        <p class="separator"><span>and</span></p>
+                        <textarea id="imageDescription" placeholder="Also describe the material in detail (color, texture, size, etc.) for better suggestions. Example: 'Blue denim fabric scraps from jeans manufacturing, about 12x8 inches, medium thickness with some stretch')" rows="3"></textarea>
+                        <p class="enhancement-tip">💡 Adding both an image and description gives the best results!</p>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="textTab">
+                    <textarea id="materialDescription" placeholder="Describe your material in detail (e.g., 'I have leftover fabric scraps from a clothing factory, mostly cotton and polyester in various blue shades. The pieces are approximately 8x10 inches with some having frayed edges.')" rows="4"></textarea>
+                    <p class="enhancement-tip">💡 The more details you provide, the more personalized the suggestions will be!</p>
+                </div>
+
+                <button id="submitBtn" class="submit-btn" disabled>Get Reuse Ideas</button>
+            </div>
+
+            <div id="loadingSection" class="loading-section hidden">
+                <div class="loading-spinner"></div>
+                <p>Analyzing your material...</p>
+            </div>
+
+            <div id="resultsSection" class="results-section hidden">
+                <div class="ideas-box">
+                    <h2>Creative Reuse Ideas</h2>
+                    <ul id="ideasList"></ul>
+                </div>
+                <div class="message-box">
+                    <h2>Message for Local Artists</h2>
+                    <p id="artistMessage"></p>
+                    <button class="copy-btn" id="copyBtn">Copy Message</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

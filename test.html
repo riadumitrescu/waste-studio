@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste-Match Studio (Test)</title>
+    <style>
+        :root {
+            --bg-color: #0b0b0f;
+            --accent-color: #6366f1;
+            --text-color: #ffffff;
+            --secondary-text: #a1a1aa;
+            --border-color: #27272a;
+            --box-bg: #18181b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+        
+        .subtitle {
+            color: var(--secondary-text);
+            font-size: 1.1rem;
+        }
+        
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .input-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .tab-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--secondary-text);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .tab-content {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        textarea {
+            width: 100%;
+            background-color: var(--box-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1rem;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 120px;
+            margin-bottom: 20px;
+        }
+        
+        .submit-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .loading-section {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .ideas-box, .message-box {
+            background-color: var(--box-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h2 {
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        ul {
+            list-style-position: inside;
+            padding-left: 1rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .copy-btn {
+            background-color: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .notice {
+            background-color: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Waste-Match Studio</h1>
+            <p class="subtitle">Transform your leftover materials into creative opportunities</p>
+            <div class="notice">
+                This test version runs completely offline with pre-defined responses.
+            </div>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="input-tabs">
+                    <button class="tab-btn active" data-tab="text">Describe Material</button>
+                </div>
+
+                <div class="tab-content active" id="textTab">
+                    <textarea id="materialDescription" placeholder="Describe your material (e.g., 'I have leftover fabric scraps from a clothing factory, mostly cotton and polyester in various colors')" rows="4"></textarea>
+                </div>
+
+                <button id="submitBtn" class="submit-btn" disabled>Get Reuse Ideas</button>
+            </div>
+
+            <div id="loadingSection" class="loading-section hidden">
+                <div class="loading-spinner"></div>
+                <p>Analyzing your material description...</p>
+            </div>
+
+            <div id="resultsSection" class="results-section hidden">
+                <div class="ideas-box">
+                    <h2>Creative Reuse Ideas</h2>
+                    <ul id="ideasList"></ul>
+                </div>
+                <div class="message-box">
+                    <h2>Message for Local Artists</h2>
+                    <p id="artistMessage"></p>
+                    <button class="copy-btn" id="copyBtn">Copy Message</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // DOM Elements
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const ideasList = document.getElementById('ideasList');
+        const artistMessage = document.getElementById('artistMessage');
+        const copyBtn = document.getElementById('copyBtn');
+        const materialDescription = document.getElementById('materialDescription');
+        
+        // Offline responses
+        const RESPONSES = {
+            fabric: {
+                ideas: [
+                    "Create unique patchwork tote bags or pouches",
+                    "Make fabric-covered journals or photo albums",
+                    "Create decorative wall hangings or quilted art pieces"
+                ],
+                message: "Hello! I have some interesting fabric scraps that would be perfect for creative projects. These materials have lots of potential for upcycling into something beautiful. Would you be interested in using them for your artistic work?"
+            },
+            wood: {
+                ideas: [
+                    "Create small wooden jewelry or trinket boxes",
+                    "Make custom wooden coasters or serving boards",
+                    "Design wall-mounted wooden key or jewelry holders"
+                ],
+                message: "Hello! I have some leftover wood pieces that would be perfect for small woodworking projects. Would you be interested in transforming them into something useful and beautiful?"
+            },
+            metal: {
+                ideas: [
+                    "Create unique metal jewelry or pendants",
+                    "Design industrial-style home decor items",
+                    "Make mixed-media art pieces incorporating the metal elements"
+                ],
+                message: "Hello! I have some interesting metal materials that would be perfect for creative metalwork projects. Would you be interested in using them in your artistic creations?"
+            },
+            plastic: {
+                ideas: [
+                    "Create colorful mosaic-style art from cut plastic pieces",
+                    "Make unique decorative planters or containers",
+                    "Design upcycled accessories like earrings or keychains"
+                ],
+                message: "Hello! I have some interesting plastic materials that could be transformed into something new and creative. Would you be interested in giving them a second life in your artistic projects?"
+            },
+            paper: {
+                ideas: [
+                    "Create handmade paper products like cards or notebooks",
+                    "Design paper mache decorative items or sculptures",
+                    "Make collage art or paper quilling projects"
+                ],
+                message: "Hello! I have some interesting paper materials that would be perfect for paper crafting projects. Would you be interested in transforming them into something creative and beautiful?"
+            },
+            glass: {
+                ideas: [
+                    "Create mosaic art pieces using the glass fragments",
+                    "Design sun catchers or window hangings",
+                    "Make unique jewelry incorporating glass elements"
+                ],
+                message: "Hello! I have some interesting glass materials that would be perfect for creative glass projects. Would you be interested in transforming them into something beautiful and unique?"
+            },
+            default: {
+                ideas: [
+                    "Create mixed-media artwork incorporating the materials",
+                    "Design functional home decor items showcasing the material's unique properties",
+                    "Make wearable art or accessories featuring the material as focal points"
+                ],
+                message: "Hello! I have some interesting materials that would be perfect for creative projects. Would you be interested in exploring how these materials could inspire your work? I'd love to see what you create with them!"
+            }
+        };
+        
+        // Event Listeners
+        materialDescription.addEventListener('input', () => {
+            submitBtn.disabled = !materialDescription.value.trim();
+        });
+        
+        submitBtn.addEventListener('click', handleSubmit);
+        copyBtn.addEventListener('click', copyMessageToClipboard);
+        
+        // Functions
+        async function handleSubmit() {
+            if (!materialDescription.value.trim()) {
+                alert('Please enter a description of your material.');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            loadingSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            
+            try {
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Get response based on material description
+                const response = getResponse(materialDescription.value);
+                
+                // Display results
+                displayResults(response);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            } finally {
+                loadingSection.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        }
+        
+        function getResponse(text) {
+            if (!text) return RESPONSES.default;
+            
+            const lowercaseText = text.toLowerCase();
+            
+            if (lowercaseText.includes('fabric') || lowercaseText.includes('textile') || lowercaseText.includes('cloth')) {
+                return RESPONSES.fabric;
+            } else if (lowercaseText.includes('wood') || lowercaseText.includes('timber') || lowercaseText.includes('plywood')) {
+                return RESPONSES.wood;
+            } else if (lowercaseText.includes('metal') || lowercaseText.includes('steel') || lowercaseText.includes('aluminum')) {
+                return RESPONSES.metal;
+            } else if (lowercaseText.includes('plastic') || lowercaseText.includes('polymer')) {
+                return RESPONSES.plastic;
+            } else if (lowercaseText.includes('paper') || lowercaseText.includes('cardboard') || lowercaseText.includes('card stock')) {
+                return RESPONSES.paper;
+            } else if (lowercaseText.includes('glass')) {
+                return RESPONSES.glass;
+            }
+            
+            return RESPONSES.default;
+        }
+        
+        function displayResults(response) {
+            // Clear previous results
+            ideasList.innerHTML = '';
+            
+            // Display ideas
+            response.ideas.forEach(idea => {
+                const li = document.createElement('li');
+                li.textContent = idea;
+                ideasList.appendChild(li);
+            });
+            
+            // Display message
+            artistMessage.textContent = response.message || '';
+            
+            // Show results
+            resultsSection.classList.remove('hidden');
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function copyMessageToClipboard() {
+            navigator.clipboard.writeText(artistMessage.textContent)
+                .then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert('Failed to copy text. Please try again or copy manually.');
+                });
+        }
+    </script>
+</body>
+</html> 
